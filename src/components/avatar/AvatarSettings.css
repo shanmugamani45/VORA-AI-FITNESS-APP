@@ -1,0 +1,220 @@
+.avatar-settings-container {
+  padding: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: white;
+  animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.avatar-header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: -1px;
+}
+
+.avatar-header p {
+  opacity: 0.6;
+  font-size: 1.1rem;
+  font-weight: 300;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 30px;
+}
+
+/* Glassmorphism Sections */
+.settings-section {
+  background: rgba(25, 25, 25, 0.6);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 35px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-section::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 4px;
+  background: var(--theme-color, #333);
+  opacity: 0.8;
+  transition: background 0.4s ease;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #fff;
+}
+
+.section-title span {
+  background: rgba(255, 255, 255, 0.1);
+  width: 35px;
+  height: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  font-size: 1rem;
+}
+
+/* Base Cards (Gender, Personality, Verbosity) */
+.card-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.option-card {
+  flex: 1;
+  min-width: 250px;
+  background: rgba(45, 52, 54, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.option-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+}
+
+.option-card.active {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--theme-color);
+  box-shadow: 0 0 25px calc(var(--theme-color) + '40');
+}
+
+.option-card .emoji-hero {
+  font-size: 4rem;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3));
+}
+
+.option-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.option-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  line-height: 1.5;
+}
+
+/* Theme Swatches */
+.swatch-group {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.theme-swatch {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  box-shadow: inset 0 2px 10px rgba(255,255,255,0.2);
+}
+
+.theme-swatch::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.theme-swatch:hover {
+  transform: scale(1.15) translateY(-5px);
+}
+
+.theme-swatch.active {
+  transform: scale(1.1);
+}
+
+.theme-swatch.active::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Voice Selection Elements */
+.voice-control-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.voice-select {
+  flex: 1;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 1.1rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  transition: all 0.3s;
+}
+
+.voice-select:focus {
+  border-color: var(--theme-color);
+  box-shadow: 0 0 15px calc(var(--theme-color) + '40');
+}
+
+.btn-test-voice {
+  padding: 0 35px;
+  height: 55px;
+  border: none;
+  border-radius: 12px;
+  background: var(--theme-color);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-test-voice:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px calc(var(--theme-color) + '60');
+  filter: brightness(1.2);
+}
+
+.btn-test-voice:active {
+  transform: translateY(0);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

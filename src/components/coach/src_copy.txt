@@ -1,0 +1,404 @@
+src/components/workout/PoseCanvas.jsx
+
+import { useEffect, useRef } from "react";
+import { Pose, POSE_CONNECTIONS } from "@mediapipe/pose";
+import { Camera } from "@mediapipe/camera_utils";
+import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
+
+export default function PoseCanvas({ onPose }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    let camera;
+    let pose;
+
+    const startPose = async () => {
+      pose = new Pose({
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}`,
+      });
+
+      pose.setOptions({
+        selfieMode: true,
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+
+      pose.onResults((results) => {
+        if (!results.image) return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = results.image.width;
+        canvas.height = results.image.height;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+
+        // mirror like a selfie camera
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+
+        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+        if (results.poseLandmarks) {
+          if (typeof onPose === "function") {
+            onPose(results.poseLandmarks);
+          }
+          drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+            color: "#00FF00",
+            lineWidth: 4,
+          });
+
+          drawLandmarks(ctx, results.poseLandmarks, {
+            color: "#FF0000",
+            radius: 4,
+          });
+        }
+
+        ctx.restore();
+      });
+
+      camera = new Camera(videoRef.current, {
+        onFrame: async () => {
+          await pose.send({ image: videoRef.current });
+        },
+        width: 640,
+        height: 480,
+      });
+
+      camera.start();
+    };
+
+    // slight delay to ensure video element is mounted
+    setTimeout(startPose, 300);
+
+    return () => {
+      if (camera) camera.stop();
+      if (pose) pose.close();
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "640px",
+        height: "480px",
+      }}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          zIndex: 1,
+        }}
+      />
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          zIndex: 2,
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
+}
+
+
+
+
+src/components/workout/WorkoutScreen.jsx
+
+import { useState } from "react";
+import PoseCanvas from "./PoseCanvas";
+import InjuryAlerts from "./InjuryAlerts";
+import DangerMeter from "../ui/DangerMeter";
+import VirtualCoach from "../coach/VirtualCoach";
+
+import { analyzeBicepCurl } from "../../utils/bicepCurlLogic";
+import { speak } from "../../utils/voice";
+
+export default function WorkoutScreen() {
+  const [repCount, setRepCount] = useState(0);
+  const [formScore, setFormScore] = useState(100);
+  const [injuries, setInjuries] = useState({});
+
+  const [coachState, setCoachState] = useState("idle");
+  const [coachText, setCoachText] = useState("Ready");
+
+  // SESSION TRACKING
+  const [startTime, setStartTime] = useState(null);
+  const [ended, setEnded] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [formTotal, setFormTotal] = useState(0);
+  const [frameCount, setFrameCount] = useState(0);
+  const [injuryCount, setInjuryCount] = useState(0);
+
+  const handlePoseUpdate = (landmarks) => {
+    const result = analyzeBicepCurl(landmarks);
+    if (!result || ended) return;
+
+    // start timer
+    if (!startTime) setStartTime(Date.now());
+
+    // update metrics
+    setRepCount(result.repCount);
+    setFormScore(result.formScore);
+    setInjuries(result.injuryFlags);
+
+    // session aggregates
+    setFormTotal((prev) => prev + result.formScore);
+    setFrameCount((prev) => prev + 1);
+
+    if (result.injuryFlags.injury) {
+      setInjuryCount((prev) => prev + 1);
+    }
+
+    // 🗣️ VOICE + AVATAR LOGIC
+
+    if (result.justCompletedRep) {
+      setCoachState("good");
+      setCoachText(`Rep ${result.repCount}`);
+      speak(`Rep ${result.repCount}`);
+    }
+
+    if (result.speedTooFast) {
+      setCoachState("slow");
+      setCoachText("Slow down");
+      speak("Slow down", 3000);
+    }
+
+    if (result.injuryFlags.elbowFlare) {
+      setCoachState("bad");
+      setCoachText("Fix your elbow");
+      speak("Fix your elbow", 3000);
+    }
+
+    if (result.injuryFlags.injury) {
+      setCoachState("injury");
+      setCoachText("Stop. Injury risk");
+      speak("Stop. Injury risk", 8000);
+    }
+  };
+
+  const endWorkout = () => {
+    if (!startTime) return;
+
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    const avgForm = frameCount
+      ? Math.round(formTotal / frameCount)
+      : 0;
+
+    const sessionSummary = {
+      reps: repCount,
+      duration,
+      avgForm,
+      injuryCount,
+    };
+
+    setSummary(sessionSummary);
+    setEnded(true);
+
+    speak(
+      `Workout complete. You did ${repCount} reps in ${duration} seconds.
+       Average form score ${avgForm}.
+       ${injuryCount > 0 ? "Be careful next time." : "Great job."}`,
+      10000
+    );
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      {/* CAMERA + POSE */}
+      <PoseCanvas onPose={handlePoseUpdate} />
+
+      {/* METRICS */}
+      <h2>🏋️ Bicep Curl</h2>
+      <p><strong>Reps:</strong> {repCount}</p>
+      <p><strong>Form Score:</strong> {formScore}/100</p>
+
+      {/* INJURY WARNINGS */}
+      <InjuryAlerts injuries={injuries} />
+
+      {/* DANGER METER */}
+      <DangerMeter value={100 - formScore} />
+
+      {/* END WORKOUT */}
+      {!ended && (
+        <button
+          onClick={endWorkout}
+          style={{
+            marginTop: 20,
+            padding: "10px 16px",
+            fontSize: 16,
+          }}
+        >
+          End Workout
+        </button>
+      )}
+
+      {/* SUMMARY */}
+      {ended && summary && (
+        <div style={{ marginTop: 20, padding: 16, border: "1px solid #ccc" }}>
+          <h3>📋 Workout Summary</h3>
+          <p><strong>Total Reps:</strong> {summary.reps}</p>
+          <p><strong>Duration:</strong> {summary.duration}s</p>
+          <p><strong>Average Form:</strong> {summary.avgForm}/100</p>
+          <p><strong>Injury Alerts:</strong> {summary.injuryCount}</p>
+        </div>
+      )}
+
+      {/* VIRTUAL COACH */}
+      <VirtualCoach state={coachState} text={coachText} />
+    </div>
+  );
+}
+
+
+
+
+
+
+src/utils/bicepCurlLogic.js
+
+
+
+let repCount = 0;
+let stage = "down";
+let lastRepTime = 0;
+let injurySpoken = false;
+
+export function analyzeBicepCurl(landmarks) {
+  if (!landmarks) return null;
+
+  const shoulder = landmarks[12];
+  const elbow = landmarks[14];
+  const wrist = landmarks[16];
+
+  const angle = calculateAngle(shoulder, elbow, wrist);
+  const now = Date.now();
+
+  let justCompletedRep = false;
+  let formScore = 100;
+  let injuryFlags = {
+    elbowFlare: false,
+    shoulderSwing: false,
+    injury: false
+  };
+
+  // ---- REP LOGIC ----
+  if (angle > 160) {
+    stage = "down";
+  }
+
+  if (angle < 50 && stage === "down") {
+    stage = "up";
+    repCount += 1;
+    justCompletedRep = true;
+
+    // Speed check
+    if (now - lastRepTime < 900) {
+      formScore -= 25;
+    }
+
+    lastRepTime = now;
+  }
+
+  // ---- FORM CHECKS ----
+  if (Math.abs(elbow.x - shoulder.x) > 0.12) {
+    injuryFlags.elbowFlare = true;
+    formScore -= 20;
+  }
+
+  if (Math.abs(shoulder.y - landmarks[11].y) > 0.05) {
+    injuryFlags.shoulderSwing = true;
+    formScore -= 20;
+  }
+
+  // ---- INJURY DETECTION ----
+  if (formScore < 50 && !injurySpoken) {
+    injuryFlags.injury = true;
+    injurySpoken = true;
+  }
+
+  return {
+    repCount,
+    formScore: Math.max(formScore, 0),
+    justCompletedRep,
+    injuryFlags,
+    speedTooFast: now - lastRepTime < 900
+  };
+}
+
+function calculateAngle(a, b, c) {
+  const ab = { x: a.x - b.x, y: a.y - b.y };
+  const cb = { x: c.x - b.x, y: c.y - b.y };
+
+  const dot = ab.x * cb.x + ab.y * cb.y;
+  const magAB = Math.sqrt(ab.x ** 2 + ab.y ** 2);
+  const magCB = Math.sqrt(cb.x ** 2 + cb.y ** 2);
+
+  let angle = Math.acos(dot / (magAB * magCB));
+  return (angle * 180) / Math.PI;
+}
+
+
+src/utils/voice.js
+
+let lastMessage = "";
+let lastTime = 0;
+
+export function speak(message, cooldown = 2000) {
+  if (!window.speechSynthesis) return;
+
+  const now = Date.now();
+  if (message === lastMessage && now - lastTime < cooldown) return;
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  window.speechSynthesis.speak(utterance);
+
+  lastMessage = message;
+  lastTime = now;
+}
+
+
+
+src/components/coach/VirtualCoach.jsx
+
+
+import "./VirtualCoach.css";
+
+export default function VirtualCoach({ state, text }) {
+  return (
+    <div className={`coach coach-${state || "idle"}`}>
+      <div className="coach-face">
+        🤖
+      </div>
+      <div className="coach-text">
+        {text || "Ready"}
+      </div>
+    </div>
+  );
+}

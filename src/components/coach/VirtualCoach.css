@@ -1,0 +1,188 @@
+/* 3D Perspective Container */
+.coach-perspective-container {
+  position: relative;
+  align-self: center;
+  margin: 20px 0;
+  perspective: 1200px;
+  z-index: 20;
+  pointer-events: none;
+  --hologram-glow: #00d2ff;
+}
+
+.coach-perspective-container.is-fixed {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  margin: 0;
+  z-index: 1000;
+}
+
+/* 3D Wrapper */
+.coach-3d-wrapper {
+  position: relative;
+  width: 140px;
+  height: 200px;
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out; /* Smooth tilt */
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Floating Physics */
+.coach-3d-wrapper {
+  animation: float-3d 4s ease-in-out infinite;
+}
+
+@keyframes float-3d {
+  0%, 100% { transform: translateY(0) rotateZ(0deg); }
+  33% { transform: translateY(-15px) rotateZ(1deg); }
+  66% { transform: translateY(-5px) rotateZ(-1deg); }
+}
+
+/* Hologram Pedestal Base */
+.hologram-pedestal {
+  position: absolute;
+  bottom: -20px;
+  width: 100px;
+  height: 40px;
+  transform: rotateX(75deg) translateZ(-20px);
+  transform-style: preserve-3d;
+}
+
+.pedestal-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--hologram-glow);
+  box-shadow: 0 0 20px var(--hologram-glow), 
+              inset 0 0 15px var(--hologram-glow);
+  background: radial-gradient(circle, var(--hologram-glow) 0%, transparent 70%);
+  animation: pedestal-pulse 4s ease-in-out infinite;
+}
+
+@keyframes pedestal-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+/* Avatar Frame 3D */
+.avatar-frame-3d {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  z-index: 5;
+}
+
+.avatar-image-container-3d {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: #000;
+  box-shadow: 0 0 30px var(--hologram-glow);
+  transform: translateZ(20px); /* Lift off the pedestal */
+}
+
+.avatar-img-3d {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+}
+
+/* Scanlines Effect */
+.avatar-scanlines {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    var(--hologram-glow) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 6;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: scanline-move 8s linear infinite;
+}
+
+@keyframes scanline-move {
+  from { background-position: 0 0; }
+  to { background-position: 0 100%; }
+}
+
+/* Lip Sync 3D */
+.mouth-sync-3d {
+  position: absolute;
+  top: 62%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 8px;
+  background: rgba(0, 210, 255, 0.4);
+  filter: blur(3px);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+  animation: mouth-talk-3d 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes mouth-talk-3d {
+  from { height: 3px; transform: translateX(-50%) scaleX(0.8); }
+  to { height: 10px; transform: translateX(-50%) scaleX(1.1); }
+}
+
+/* Feedback Bubble 3D */
+.coach-bubble-3d {
+  position: absolute;
+  bottom: 110px;
+  right: -30px;
+  transform: translateZ(50px); /* Pop out even more in 3D */
+  background: rgba(20, 20, 30, 0.7);
+  backdrop-filter: blur(15px) saturate(160%);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px 20px 0 20px;
+  padding: 14px 22px;
+  min-width: 180px;
+  color: #fff;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+  animation: bubble-float 4s ease-in-out infinite;
+  text-align: center;
+  font-weight: 500;
+}
+
+@keyframes bubble-float {
+  0%, 100% { transform: translateZ(50px) translateY(0); }
+  50% { transform: translateZ(70px) translateY(-5px); }
+}
+
+/* State Reactive Effects */
+.coach-bad .avatar-image-container-3d {
+  animation: flicker 0.2s infinite;
+  border-color: rgba(255, 118, 117, 0.4);
+}
+
+@keyframes flicker {
+  0% { opacity: 0.9; }
+  50% { opacity: 0.75; transform: translateZ(20px) translateX(1px); }
+  100% { opacity: 0.9; }
+}
+
+.status-indicator-3d {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background: #00ff00;
+  border-radius: 50%;
+  box-shadow: 0 0 15px #00ff00;
+  transform: translateZ(30px);
+}
