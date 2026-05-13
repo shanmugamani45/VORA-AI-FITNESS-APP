@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pose, POSE_CONNECTIONS } from "@mediapipe/pose";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 
@@ -6,6 +6,8 @@ export default function PoseCanvas({ onPose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const onPoseRef = useRef(onPose);
+  const [status, setStatus] = useState("Initializing...");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     onPoseRef.current = onPose;
@@ -19,9 +21,35 @@ export default function PoseCanvas({ onPose }) {
 
     const startPose = async () => {
       try {
-        console.log("Initializing Pose Detection...");
+        setStatus("Requesting Camera...");
         
-        // Initialize MediaPipe Pose
+        // 1. Start Camera First (Immediate feedback)
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        if (isStopped) return;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          
+          // Wait for video to be ready
+          await new Promise((resolve) => {
+            videoRef.current.onloadeddata = () => {
+              videoRef.current.play().then(resolve).catch(resolve);
+            };
+            // Fallback for already loaded or weird browsers
+            if (videoRef.current.readyState >= 2) resolve();
+          });
+          
+          setStatus("Camera Active. Loading AI...");
+        }
+
+        // 2. Initialize MediaPipe Pose
         pose = new Pose({
           locateFile: (file) =>
             `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/${file}`,
@@ -41,8 +69,11 @@ export default function PoseCanvas({ onPose }) {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext("2d");
 
-          canvas.width = results.image.width;
-          canvas.height = results.image.height;
+          // Keep canvas size synced with video
+          if (canvas.width !== results.image.width || canvas.height !== results.image.height) {
+            canvas.width = results.image.width;
+            canvas.height = results.image.height;
+          }
 
           ctx.save();
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -63,49 +94,35 @@ export default function PoseCanvas({ onPose }) {
           ctx.restore();
         });
 
-        // Initialize Camera using standard getUserMedia
-        console.log("Requesting Camera Access...");
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: "user",
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        });
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        // 3. Start Detection Loop
+        console.log("Pose model initialized.");
+        setStatus("Ready");
+        
+        const processFrame = async () => {
+          if (isStopped) return;
           
-          // Wait for video to be ready before starting the loop
-          await new Promise((resolve) => {
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current.play();
-              resolve();
-            };
-          });
-
-          console.log("Camera active, starting detection loop.");
-          
-          const processFrame = async () => {
-            if (isStopped) return;
-            
-            if (videoRef.current && videoRef.current.readyState === 4) {
+          if (videoRef.current && videoRef.current.readyState >= 2) {
+            try {
               await pose.send({ image: videoRef.current });
+            } catch (e) {
+              console.warn("Pose send error", e);
             }
-            animationFrameId = requestAnimationFrame(processFrame);
-          };
+          }
+          animationFrameId = requestAnimationFrame(processFrame);
+        };
 
-          processFrame();
-        }
+        processFrame();
+        
       } catch (err) {
-        console.error("PoseCanvas Initialization Error:", err);
+        console.error("PoseCanvas Error:", err);
+        setError(err.message);
+        setStatus("Initialization Failed");
       }
     };
 
     startPose();
 
     return () => {
-      console.log("Cleaning up PoseCanvas...");
       isStopped = true;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (stream) {
@@ -125,9 +142,30 @@ export default function PoseCanvas({ onPose }) {
         height: "100%",
         backgroundColor: "#000",
         borderRadius: "12px",
-        overflow: "hidden"
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
       }}
     >
+      {/* Status Overlay */}
+      {status !== "Ready" && (
+        <div style={{
+          position: "absolute",
+          zIndex: 10,
+          textAlign: "center",
+          color: "white",
+          background: "rgba(0,0,0,0.6)",
+          padding: "20px",
+          borderRadius: "12px",
+          backdropFilter: "blur(5px)"
+        }}>
+          <div style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: "8px" }}>{status}</div>
+          {error && <div style={{ fontSize: "0.8rem", color: "#ff7675" }}>Error: {error}</div>}
+          <div style={{ fontSize: "0.8rem", opacity: 0.6, marginTop: "10px" }}>Please ensure camera permissions are granted.</div>
+        </div>
+      )}
+
       <video
         ref={videoRef}
         autoPlay
@@ -140,8 +178,10 @@ export default function PoseCanvas({ onPose }) {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          transform: "scaleX(-1)", // Mirror for selfie mode
-          zIndex: 1
+          transform: "scaleX(-1)",
+          zIndex: 1,
+          opacity: status === "Ready" || status.includes("AI") ? 1 : 0,
+          transition: "opacity 0.5s"
         }}
       />
       <canvas
@@ -160,4 +200,5 @@ export default function PoseCanvas({ onPose }) {
     </div>
   );
 }
+
 
