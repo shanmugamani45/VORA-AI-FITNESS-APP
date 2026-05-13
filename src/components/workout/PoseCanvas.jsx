@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Pose, POSE_CONNECTIONS } from "@mediapipe/pose";
+import * as mpPose from "@mediapipe/pose";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
+
+// Handle different import structures for MediaPipe
+const Pose = mpPose.Pose || (typeof window !== "undefined" && window.Pose);
+const POSE_CONNECTIONS = mpPose.POSE_CONNECTIONS || (typeof window !== "undefined" && window.POSE_CONNECTIONS);
+
 
 export default function PoseCanvas({ onPose }) {
   const videoRef = useRef(null);
