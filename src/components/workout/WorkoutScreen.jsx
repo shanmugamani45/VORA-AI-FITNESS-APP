@@ -626,13 +626,36 @@ export default function WorkoutScreen() {
             </div>
           ) : (
             <div className="performance-panel">
-              <h3>📊 Session Analysis</h3>
-              <div className="performance-details">
-                <p><span>Exercises Completed</span> <strong style={{ color: "#00d2ff" }}>{currentRoutineIndex + (reps >= targetReps ? 1 : 0)}</strong></p>
-                <p><span>Total Sets Completed</span> <strong style={{ color: "#00d2ff" }}>{currentSet - 1 + (reps >= targetReps ? 1 : 0)}</strong></p>
-                <p><span>Total Strict Reps</span> <strong style={{ color: "#00d2ff" }}>{globalRepsRef.current}</strong></p>
-                <p><span>Average Form</span> <strong style={{ color: averageForm > 85 ? "#00b894" : averageForm > 60 ? "#fdcb6e" : "#ff7675" }}>{averageForm}%</strong></p>
-                <p><span>Total Time</span> <strong>{Math.floor(duration / 60)}m {duration % 60}s</strong></p>
+              <h3>⚡ Session Intelligence Report</h3>
+              <div className="performance-grid">
+                <div className="performance-card">
+                  <span className="perf-label">Exercises</span>
+                  <div className="perf-value" style={{ color: "#00d2ff" }}>
+                    {currentRoutineIndex + (currentSet >= targetSets && reps >= targetReps ? 1 : 0)}
+                  </div>
+                </div>
+                <div className="performance-card">
+                  <span className="perf-label">Total Sets</span>
+                  <div className="perf-value" style={{ color: "#00d2ff" }}>
+                    {currentSet - 1 + (reps >= targetReps ? 1 : 0)}
+                  </div>
+                </div>
+                <div className="performance-card">
+                  <span className="perf-label">Strict Reps</span>
+                  <div className="perf-value">{globalRepsRef.current}</div>
+                </div>
+                <div className="performance-card">
+                  <span className="perf-label">Avg Form</span>
+                  <div className="perf-value" style={{ color: averageForm > 85 ? "#00b894" : averageForm > 60 ? "#fdcb6e" : "#ff7675" }}>
+                    {averageForm}%
+                  </div>
+                </div>
+                <div className="performance-card" style={{ gridColumn: "span 2" }}>
+                  <span className="perf-label">Duration</span>
+                  <div className="perf-value" style={{ fontSize: "1.5rem" }}>
+                    {Math.floor(duration / 60)}m {duration % 60}s
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => setSessionEnded(false)}
