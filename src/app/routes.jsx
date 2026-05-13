@@ -20,7 +20,6 @@ export default function RoutesConfig() {
         
         {/* Authenticated Routes with Sidebar */}
         <Route element={<DashboardLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Home />} />
           <Route path="/workout" element={<WorkoutScreen />} />
           <Route path="/achievements" element={<Achievements />} />
