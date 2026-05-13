@@ -136,6 +136,22 @@ const EXERCISES = {
   },
 };
 
+const miniBtnStyle = {
+  background: "rgba(255,255,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.2)",
+  color: "white",
+  width: "24px",
+  height: "24px",
+  borderRadius: "6px",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  cursor: "pointer",
+  fontSize: "1rem",
+  fontWeight: "bold",
+  transition: "all 0.2s"
+};
+
 export default function WorkoutScreen() {
   const [routine, setRoutine] = useState([{ id: Date.now(), exerciseId: "BICEP_CURL", sets: 3, reps: 10 }]);
   const [currentRoutineIndex, setCurrentRoutineIndex] = useState(0);
@@ -502,7 +518,19 @@ export default function WorkoutScreen() {
                       </div>
                       
                       <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-                        <span style={{ opacity: 0.7, fontSize: "0.95rem" }}>{block.sets} Sets × {block.reps} Reps</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                           <span style={{ opacity: 0.6, fontSize: "0.8rem" }}>SETS</span>
+                           {!sessionStarted && <button onClick={() => updateRoutineBlock(actualIndex, "sets", Math.max(1, block.sets - 1))} style={miniBtnStyle}>-</button>}
+                           <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center" }}>{block.sets}</span>
+                           {!sessionStarted && <button onClick={() => updateRoutineBlock(actualIndex, "sets", block.sets + 1)} style={miniBtnStyle}>+</button>}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                           <span style={{ opacity: 0.6, fontSize: "0.8rem" }}>REPS</span>
+                           {!sessionStarted && <button onClick={() => updateRoutineBlock(actualIndex, "reps", Math.max(1, block.reps - 1))} style={miniBtnStyle}>-</button>}
+                           <span style={{ fontWeight: "bold", minWidth: "20px", textAlign: "center" }}>{block.reps}</span>
+                           {!sessionStarted && <button onClick={() => updateRoutineBlock(actualIndex, "reps", block.reps + 1)} style={miniBtnStyle}>+</button>}
+                        </div>
                         
                         {!sessionStarted && (
                           <button 
@@ -544,7 +572,14 @@ export default function WorkoutScreen() {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Set</span>
-                  <div className="stat-value" style={{ color: "#a2b0c6", fontSize: "2rem", marginTop: "10px" }}>{sessionStarted ? currentSet : 0} / {targetSets}</div>
+                  <div className="stat-value" style={{ 
+                    color: sessionStarted ? "#00d2ff" : "#a2b0c6", 
+                    fontSize: "2rem", 
+                    marginTop: "10px",
+                    textShadow: sessionStarted ? "0 0 10px rgba(0, 210, 255, 0.3)" : "none"
+                  }}>
+                    {currentSet} <span style={{ fontSize: "1rem", opacity: 0.5 }}>/ {targetSets}</span>
+                  </div>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Strict Reps</span>
@@ -570,6 +605,8 @@ export default function WorkoutScreen() {
             <div className="performance-panel">
               <h3>📊 Session Analysis</h3>
               <div className="performance-details">
+                <p><span>Exercises Completed</span> <strong style={{ color: "#00d2ff" }}>{currentRoutineIndex + (reps >= targetReps ? 1 : 0)}</strong></p>
+                <p><span>Total Sets Completed</span> <strong style={{ color: "#00d2ff" }}>{currentSet - 1 + (reps >= targetReps ? 1 : 0)}</strong></p>
                 <p><span>Total Strict Reps</span> <strong style={{ color: "#00d2ff" }}>{globalRepsRef.current}</strong></p>
                 <p><span>Average Form</span> <strong style={{ color: averageForm > 85 ? "#00b894" : averageForm > 60 ? "#fdcb6e" : "#ff7675" }}>{averageForm}%</strong></p>
                 <p><span>Total Time</span> <strong>{Math.floor(duration / 60)}m {duration % 60}s</strong></p>
