@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import * as mpPose from "@mediapipe/pose";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
+import * as mpDrawing from "@mediapipe/drawing_utils";
 
 // Handle different import structures for MediaPipe
 const Pose = mpPose.Pose || (typeof window !== "undefined" && window.Pose);
 const POSE_CONNECTIONS = mpPose.POSE_CONNECTIONS || (typeof window !== "undefined" && window.POSE_CONNECTIONS);
-
+const drawConnectors = mpDrawing.drawConnectors || (typeof window !== "undefined" && window.drawConnectors);
+const drawLandmarks = mpDrawing.drawLandmarks || (typeof window !== "undefined" && window.drawLandmarks);
 
 export default function PoseCanvas({ onPose }) {
   const videoRef = useRef(null);
@@ -13,6 +14,8 @@ export default function PoseCanvas({ onPose }) {
   const onPoseRef = useRef(onPose);
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
+  const [poseDetected, setPoseDetected] = useState(false);
+
 
   useEffect(() => {
     onPoseRef.current = onPose;
@@ -64,8 +67,8 @@ export default function PoseCanvas({ onPose }) {
           selfieMode: true,
           modelComplexity: 1,
           smoothLandmarks: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          minDetectionConfidence: 0.4, // Lowered for easier pickup
+          minTrackingConfidence: 0.4,  // Lowered for easier pickup
         });
 
         pose.onResults((results) => {
@@ -74,7 +77,6 @@ export default function PoseCanvas({ onPose }) {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext("2d");
 
-          // Keep canvas size synced with video
           if (canvas.width !== results.image.width || canvas.height !== results.image.height) {
             canvas.width = results.image.width;
             canvas.height = results.image.height;
@@ -84,17 +86,24 @@ export default function PoseCanvas({ onPose }) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           if (results.poseLandmarks) {
+            setPoseDetected(true);
             onPoseRef.current?.(results.poseLandmarks);
 
-            drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
-              color: "#00FF00",
-              lineWidth: 4,
-            });
+            if (typeof drawConnectors === "function") {
+              drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {
+                color: "#00FF00",
+                lineWidth: 4,
+              });
+            }
 
-            drawLandmarks(ctx, results.poseLandmarks, {
-              color: "#FF0000",
-              radius: 4,
-            });
+            if (typeof drawLandmarks === "function") {
+              drawLandmarks(ctx, results.poseLandmarks, {
+                color: "#FF0000",
+                radius: 4,
+              });
+            }
+          } else {
+            setPoseDetected(false);
           }
           ctx.restore();
         });
@@ -171,6 +180,35 @@ export default function PoseCanvas({ onPose }) {
         </div>
       )}
 
+      {/* Detection Indicator */}
+      {status === "Ready" && (
+        <div style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "rgba(0,0,0,0.5)",
+          padding: "6px 12px",
+          borderRadius: "20px",
+          fontSize: "0.75rem",
+          fontWeight: "bold",
+          color: poseDetected ? "#00b894" : "#ff7675"
+        }}>
+          <div style={{
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            backgroundColor: poseDetected ? "#00b894" : "#ff7675",
+            boxShadow: poseDetected ? "0 0 10px #00b894" : "none",
+            animation: poseDetected ? "pulse 1s infinite" : "none"
+          }}></div>
+          {poseDetected ? "AI DETECTED" : "SCANNING..."}
+        </div>
+      )}
+
       <video
         ref={videoRef}
         autoPlay
@@ -202,8 +240,17 @@ export default function PoseCanvas({ onPose }) {
           pointerEvents: "none"
         }}
       />
+      
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
+
 
 
