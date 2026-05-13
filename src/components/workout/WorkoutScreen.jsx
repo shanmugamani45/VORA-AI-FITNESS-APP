@@ -176,6 +176,37 @@ export default function WorkoutScreen() {
 
   const [currentSet, setCurrentSet] = useState(1);
   const [isResting, setIsResting] = useState(false);
+  const [restTimer, setRestTimer] = useState(10);
+  const restTimerRef = useRef(null);
+
+  const startNextSet = () => {
+    if (restTimerRef.current) clearInterval(restTimerRef.current);
+    setCurrentSet(prev => prev + 1);
+    setReps(0);
+    repCountRef.current = 0;
+    setIsResting(false);
+    setRestTimer(10);
+    speak(`Starting Set ${currentSet + 1}. Let's go!`);
+    setCoachText(`Set ${currentSet + 1} starting...`);
+  };
+
+  useEffect(() => {
+    if (isResting && restTimer > 0) {
+      restTimerRef.current = setInterval(() => {
+        setRestTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(restTimerRef.current);
+            startNextSet();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (restTimerRef.current) clearInterval(restTimerRef.current);
+    };
+  }, [isResting]);
 
   const [coachText, setCoachText] = useState("Ready");
   const [coachState, setCoachState] = useState("idle");
@@ -442,23 +473,15 @@ export default function WorkoutScreen() {
 
           {!isTransitioningExercise && isResting && (
             <div className="start-session-overlay">
-              <div style={{ textAlign: "center" }}>
-                <h2 style={{ fontSize: "3rem", marginBottom: "30px", textShadow: "0 5px 20px rgba(0,0,0,0.8)" }}>
-                  Set {currentSet} Complete! <span style={{ color: "#00d2ff" }}>💪</span>
-                </h2>
-                <button
-                  onClick={() => {
-                    setCurrentSet(prev => prev + 1);
-                    setReps(0);
-                    repCountRef.current = 0;
-                    setIsResting(false);
-                    speak(`Starting Set ${currentSet + 1}. Let's go!`);
-                  }}
-                  className="btn-start-session"
-                >
-                  ▶ Start Set {currentSet + 1}
-                </button>
-              </div>
+               <div className="rest-title">Resting</div>
+               <div className="rest-timer-circle">{restTimer}</div>
+               <div className="rest-subtitle">Next: Set {currentSet + 1} of {targetSets}</div>
+               <button 
+                 className="btn-skip-rest"
+                 onClick={startNextSet}
+               >
+                 Skip Rest & Start Now
+               </button>
             </div>
           )}
         </div>
